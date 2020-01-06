@@ -8,6 +8,7 @@ import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -18,6 +19,10 @@ public class ChatEndpoint {
     private static Set<ChatEndpoint> chatEndpoints = new CopyOnWriteArraySet<>();
     private static HashMap<String, String> users = new HashMap<>();
 
+    private final static String MSG_TYPE_CHAT = "0";
+    private final static String MSG_TYPE_CONNECT = "1";
+    private final static String MSG_TYPE_DISCONNECT = "2";
+
     @OnOpen
     public void onOpen(Session session, @PathParam("username")String username) throws IOException {
         this.session = session;
@@ -26,13 +31,15 @@ public class ChatEndpoint {
 
         Message message = new Message();
         message.setFrom(username);
+        message.setType(MSG_TYPE_CONNECT);
         message.setContent(username + " connected!");
-        broadcast(message);
+        broadcast(message);;
     }
 
     @OnMessage
     public void onMessage(Session session, Message message) throws IOException{
         message.setFrom(users.get(session.getId()));
+        message.setType(MSG_TYPE_CHAT);
         broadcast(message);
     }
 
@@ -41,6 +48,7 @@ public class ChatEndpoint {
         chatEndpoints.remove(this);
         Message message = new Message();
         message.setFrom(users.get(session.getId()));
+        message.setType(MSG_TYPE_DISCONNECT);
         message.setContent(users.get(session.getId()) + " disconnected.");
         broadcast(message);
         System.out.println(users.get(session.getId()) + " close.");
